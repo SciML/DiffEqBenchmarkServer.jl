@@ -6,7 +6,7 @@ var utils   = require("./utils");
 var app = express()
 app.use(express.urlencoded());
 app.use(express.json());
-!fs.existsSync(__dirname + `/public`) && fs.mkdirSync(__dirname + `/public`);
+!fs.existsSync(__dirname + `/reports`) && fs.mkdirSync(__dirname + `/reports`);
 // CONFIG BEGIN
 KEY = "secret_secret_secret"
 // CONFIG END
@@ -17,8 +17,6 @@ app.post("/report", (req, res) => {
 		res.status(401).send("not authorized");
 		return;
 	}
-	/* TODO: Make a route `/:repo/:pr/:commit` where report is displayed, make /:repo, /:repo/:pr if not already made, and add entry to both the pages*/
-	/* TIP: We can make `/:repo/:pr/:commit` static */
 
 	/* Generate a static report */
 	report = req.body.report;
@@ -47,7 +45,7 @@ app.get("/:repo", (req, res) => {
 
 app.get("/:repo/:pr/:commit", (req, res) => {
 	/* Latest report */
-	res.sendFile(__dirname + `/public/${req.params.repo}/${req.params.pr}/${req.params.commit}.html`)
+	res.sendFile(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.html`)
 }) 
 
 var listener = app.listen(process.env.PORT || 8081, () => {
