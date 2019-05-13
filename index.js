@@ -53,6 +53,43 @@ app.get("/", (req, res) => {
 });
 
 app.get("/packages/:repo", (req, res) => {
+	res.render("repo", {repo: req.params.repo});
+})
+
+app.get("/packages/:repo/:pr", (req, res) => {
+	res.render("pr", req.params)
+})
+
+app.get("/packages/:repo/:pr/:commit", (req, res) => {
+	/* Latest report */
+	res.sendFile(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.html`)
+}) 
+
+var listener = app.listen(process.env.PORT || 8081, () => {
+	logger.info(`Server running at ${listener.address().port}`)
+})
+
+// API
+
+app.get("/api/pr/:repo/:pr", (req,res) => {
+	request({
+		headers: {
+			"User-Agent": config.admin
+		},
+		uri: `https://api.github.com/repos/${config.org}/${req.params.repo}/pulls/${req.params.pr}?client_id=${config.github_outh_client_id}&client_secret=${config.github_outh_client_secret}`,
+		method: "GET"
+	}, (err, res2, body) => {
+		if (err) {
+			res.status(500).send("Internal Error");
+		}
+		else {
+			json = JSON.parse(body)
+			res.json({number: json.number, author: json.user.login, title: json.title})
+		}
+	})
+})
+
+app.get("/api/repo_open_pulls/:repo", (req, res) => {
 	request({
 		headers: {
 			"User-Agent": config.admin
@@ -65,7 +102,6 @@ app.get("/packages/:repo", (req, res) => {
 		}
 		else {
 			data = []
-			logger.info(body)
 			open_prs = JSON.parse(body)
 			if(!(open_prs instanceof Array)) {
 				res.status(500).send("Internal Error");
@@ -75,20 +111,7 @@ app.get("/packages/:repo", (req, res) => {
 				obj = { title: pr.title, number: pr.number, author: pr.user.login }
 				data.push(obj);
 			})
-			res.render("repo", {repo: req.params.repo, prs: data});
+			res.json(data);
 		}
 	})
-})
-
-app.get("/packages/:repo/:pr", (req, res) => {
-
-})
-
-app.get("/packages/:repo/:pr/:commit", (req, res) => {
-	/* Latest report */
-	res.sendFile(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.html`)
-}) 
-
-var listener = app.listen(process.env.PORT || 8081, () => {
-	logger.info(`Server running at ${listener.address().port}`)
 })

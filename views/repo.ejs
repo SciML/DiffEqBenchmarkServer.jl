@@ -2,24 +2,37 @@
 <% include sidebar %>
 			<div class="container-fluid dashboard-content">
                 <div class="row">
-                    <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                    	<% prs.forEach((pr)=>{ %>
-                    	<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-	                        <div class="card">
-	                            <div class="card-header">
-	                                #<%=pr.number %> by <%=pr.author %>
-	                            </div>
-	                            <div class="card-body">
-	                                <blockquote class="blockquote mb-0">
-	                                    <p> <%=pr.title %> </p>
-	                                    <a href="https://github.com/JuliaDiffEq/<%=repo %>/pull/<%=pr.number %>" class="btn btn-primary">Link to GitHub PR</a>
-	                                    <a href="/packages/<%=repo %>/<%=pr.number %>" class="btn btn-primary">Benchmark Results</a>
-	                                </blockquote>
-	                            </div>
-	                        </div>
-	                    </div>
-						<% }) %>
+                    <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12" id="idx_pulls">
+                    	<img src="/assets/images/loading.svg">
                     </div>
+                    <script type="text/javascript">
+                    	fetch("/api/repo_open_pulls/<%=repo%>")
+		            		.then((res)  => {
+		            			return res.json()
+		            		})
+		            		.then((json) => {
+		            			text = ''
+		            			if (json.length == 0) {
+		            				document.getElementById('idx_pulls').innerHTML = "No open pull requests :(";
+		            				return;
+		            			}
+		            			json.forEach(pull => {
+		            				text += `<div class="card">
+					                            <div class="card-header">
+					                                #${pull.number} by ${pull.author}
+					                            </div>
+					                            <div class="card-body">
+					                                <blockquote class="blockquote mb-0">
+					                                    <p> ${pull.title} </p>
+					                                    <a href="https://github.com/JuliaDiffEq/<%=repo %>/pull/${pull.number}" class="btn btn-primary">Link to GitHub PR</a>
+					                                    <a href="/packages/<%=repo %>/${pull.number}" class="btn btn-primary">Benchmark Results</a>
+					                                </blockquote>
+					                            </div>
+					                        </div>`;
+		            			})
+		            			document.getElementById('idx_pulls').innerHTML = text;
+		            		})
+                    </script>
                 </div>
             </div>
 <% include footer %>
