@@ -1,0 +1,25 @@
+<% include navbar %>
+<% include sidebar %>
+			<div class="container-fluid dashboard-content">
+                <div class="row">
+                    <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                    	<% prs.forEach((pr)=>{ %>
+                    	<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+	                        <div class="card">
+	                            <div class="card-header">
+	                                #<%=pr.number %> by <%=pr.author %>
+	                            </div>
+	                            <div class="card-body">
+	                                <blockquote class="blockquote mb-0">
+	                                    <p> <%=pr.title %> </p>
+	                                    <a href="https://github.com/JuliaDiffEq/<%=repo %>/pull/<%=pr.number %>" class="btn btn-primary">Link to GitHub PR</a>
+	                                    <a href="/packages/<%=repo %>/<%=pr.number %>" class="btn btn-primary">Benchmark Results</a>
+	                                </blockquote>
+	                            </div>
+	                        </div>
+	                    </div>
+						<% }) %>
+                    </div>
+                </div>
+            </div>
+<% include footer %>

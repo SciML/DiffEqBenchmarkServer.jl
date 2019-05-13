@@ -1,3 +1,5 @@
 node_modules/
 reports/
 development.log
+concept-master/
+config.json

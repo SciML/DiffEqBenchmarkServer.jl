@@ -2,11 +2,25 @@ var express = require("express");
 var logger  = require("logger").createLogger('development.log');
 // var ejs     = require("ejs");
 var fs      = require("fs");
+var request = require("request")
 var utils   = require("./utils");
 var app = express()
 app.use(express.urlencoded());
 app.use(express.json());
+app.use(express.static('public'))
+app.set('view engine', 'ejs');
 !fs.existsSync(__dirname + `/reports`) && fs.mkdirSync(__dirname + `/reports`);
+config = JSON.parse(fs.readFileSync(__dirname + "/config.json"))
+// Mongo Setup
+const MongoClient = require('mongodb').MongoClient;
+const uri = config.db_url;
+const db = new MongoClient(uri, { useNewUrlParser: true });
+db.connect(err => {
+  if (err) {
+  	logger.error("MongoDB connect failed");
+  	exit(1);
+  }
+});
 // CONFIG BEGIN
 KEY = "secret_secret_secret"
 // CONFIG END
@@ -35,15 +49,42 @@ app.post("/report", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-	res.send("Hello!")
-	/* List of all repos */
+	res.render("index")
 });
 
-app.get("/:repo", (req, res) => {
-	/* Open PRs of a given repo */
+app.get("/packages/:repo", (req, res) => {
+	request({
+		headers: {
+			"User-Agent": config.admin
+		},
+		uri: `https://api.github.com/repos/${config.org}/${req.params.repo}/pulls?client_id=${config.github_outh_client_id}&client_secret=${config.github_outh_client_secret}&state=opened`,
+		method: "GET"
+	}, (err, res2, body) => {
+		if (err) {
+			res.status(500).send("Internal Error");
+		}
+		else {
+			data = []
+			logger.info(body)
+			open_prs = JSON.parse(body)
+			if(!(open_prs instanceof Array)) {
+				res.status(500).send("Internal Error");
+				return;
+			}
+			open_prs.forEach((pr) => {
+				obj = { title: pr.title, number: pr.number, author: pr.user.login }
+				data.push(obj);
+			})
+			res.render("repo", {repo: req.params.repo, prs: data});
+		}
+	})
 })
 
-app.get("/:repo/:pr/:commit", (req, res) => {
+app.get("/packages/:repo/:pr", (req, res) => {
+
+})
+
+app.get("/packages/:repo/:pr/:commit", (req, res) => {
 	/* Latest report */
 	res.sendFile(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.html`)
 }) 
