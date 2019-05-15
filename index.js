@@ -14,12 +14,10 @@ config = JSON.parse(fs.readFileSync(__dirname + "/config.json"))
 // Mongo Setup
 const MongoClient = require('mongodb').MongoClient;
 const uri = config.db_url;
-const db = new MongoClient(uri, { useNewUrlParser: true });
-db.connect(err => {
-  if (err) {
-  	logger.error("MongoDB connect failed");
-  	exit(1);
-  }
+let db;
+MongoClient.connect(uri, { useNewUrlParser: true }, function(err, client) {
+	if (err) throw err;
+	db = client.db("main");
 });
 // CONFIG BEGIN
 KEY = "secret_secret_secret"
@@ -34,7 +32,7 @@ app.post("/report", (req, res) => {
 
 	/* Generate a static report */
 	report = req.body.report;
-	utils.generate_report(report, (success) => {
+	utils.generate_report(report, db, (success) => {
 		if (success) {
 			logger.info(`Performance report generated for ${report.repo}#${report.pr}(${report.commit})`)
 		}
@@ -62,7 +60,7 @@ app.get("/packages/:repo/:pr", (req, res) => {
 
 app.get("/packages/:repo/:pr/:commit", (req, res) => {
 	/* Latest report */
-	res.sendFile(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.html`)
+	res.render("build", {repo: req.params.repo, pr: req.params.pr, commit: req.params.commit})
 }) 
 
 var listener = app.listen(process.env.PORT || 8081, () => {
@@ -87,6 +85,37 @@ app.get("/api/pr/:repo/:pr", (req,res) => {
 			res.json({number: json.number, author: json.user.login, title: json.title})
 		}
 	})
+})
+
+app.get("/api/builds/:repo/:pr", (req, res) => {
+	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}`)) {
+		res.json({ message: "no repo" })
+		return;
+	}
+	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}`)) {
+		res.json({ message: "no pull" })
+		return;
+	}
+	q = {"repo": req.params.repo, "pull": parseInt(req.params.pr)}
+	db.collection("pulls").findOne(q, (err, result) => {
+		if (err) throw err;
+		builds = fs.readdirSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}`)
+		for (var i = builds.length - 1; i >= 0; i--) {
+			builds[i] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
+		}
+		if (result)
+			latest = result.latest
+		else
+			latest = ""
+		res.json({builds, latest})
+	})
+})
+
+app.get("/api/build/:repo/:pr/:commit", (req, res) => {
+	if(fs.existsSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.json`))
+		res.sendFile(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.json`)
+	else
+		res.status(404).send("not found");
 })
 
 app.get("/api/repo_open_pulls/:repo", (req, res) => {

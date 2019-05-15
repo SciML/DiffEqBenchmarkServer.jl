@@ -1,0 +1,67 @@
+<% include navbar %>
+<% include sidebar %>
+			<div class="container-fluid dashboard-content">
+                <div class="row">
+                    <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6 col-6" id="reports">
+                    </div>
+                </div>
+            </div>
+            <script type="text/javascript">
+            	fetch("/api/build/<%=repo%>/<%=pr%>/<%=commit%>")
+            		.then(res  => {
+            			return res.json()
+            		})
+            		.then(json => {
+            			ele = document.getElementById('reports')
+            			json.forEach(rep => {
+            				if (rep.type == "image") {
+	            				ele.innerHTML += `<div class="card">
+						                            <div class="card-header">
+						                                ${rep.title}
+						                            </div>
+						                            <div class="card-body">
+						                                <blockquote class="blockquote mb-0">
+						                                    <img src="${rep.data}">
+						                                </blockquote>
+						                            </div>
+						                        </div>`
+            				}
+            				else if (rep.type == "table") {
+            					thead = ''
+            					rep.data.head.forEach(h => {
+            						thead += `<th scope="col">${h}</th>`
+            					})
+            					rs = ''
+            					rep.data.table.forEach(r => {
+	        						x = ''
+            						r.forEach(r1 => {
+            							x += `<td>${r1}</td>`
+            						})
+            						x = `<tr>` + x + `</tr>`
+            						rs += x
+            					})
+            					tab_element = `<table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                ${thead}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${rs}
+                                        </tbody>
+                                    </table>`;
+                                ele.innerHTML += `<div class="card">
+						                            <div class="card-header">
+						                                ${rep.title}
+						                            </div>
+						                            <div class="card-body">
+						                                <blockquote class="blockquote mb-0">
+						                                    ${tab_element}
+						                                </blockquote>
+						                            </div>
+						                        </div>`
+            				}
+            			})
+            		})
+            </script>
+<% include footer %>

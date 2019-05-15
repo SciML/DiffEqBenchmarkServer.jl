@@ -14,7 +14,7 @@
                     </div>
                 </div>
                 <div class="row">
-                	<div class="col-xl-9 col-lg-9 col-md-9 col-sm-9 col-9">
+                	<div class="col-xl-9 col-lg-9 col-md-9 col-sm-9 col-9" id="reports">
                         <div class="card">
                             <div class="card-header">Latest Push Results</div>
                             <div class="card-body">
@@ -38,12 +38,81 @@
             </div>
             <script type="text/javascript">
             	fetch("/api/pr/<%=repo%>/<%=pr%>")
-            		.then((res)  => {
+            		.then(res  => {
             			return res.json()
             		})
-            		.then((json) => {
+            		.then(json => {
             			document.getElementById('pr_head').innerHTML = `#<%=pr %> by ${json.author}`;
             			document.getElementById('pr_title').innerHTML = json.title;
-            		}) 
+            		})
+            	fetch("/api/builds/<%=repo%>/<%=pr%>")
+            		.then(res => {
+            			return res.json()
+            		})
+            		.then(json => {
+            			document.getElementById('latest_results').innerHTML = json.latest;
+            			fetch(`/api/build/<%=repo%>/<%=pr%>/${json.latest}`)
+		            		.then(res  => {
+		            			return res.json()
+		            		})
+		            		.then(json => {
+		            			ele = document.getElementById('reports')
+		            			json.forEach(rep => {
+		            				if (rep.type == "image") {
+			            				ele.innerHTML += `<div class="card">
+								                            <div class="card-header">
+								                                ${rep.title}
+								                            </div>
+								                            <div class="card-body">
+								                                <blockquote class="blockquote mb-0">
+								                                    <img src="${rep.data}">
+								                                </blockquote>
+								                            </div>
+								                        </div>`
+		            				}
+		            				else if (rep.type == "table") {
+		            					thead = ''
+		            					rep.data.head.forEach(h => {
+		            						thead += `<th scope="col">${h}</th>`
+		            					})
+		            					rs = ''
+		            					rep.data.table.forEach(r => {
+			        						x = ''
+		            						r.forEach(r1 => {
+		            							x += `<td>${r1}</td>`
+		            						})
+		            						x = `<tr>` + x + `</tr>`
+		            						rs += x
+		            					})
+		            					tab_element = `<table class="table table-bordered">
+		                                        <thead>
+		                                            <tr>
+		                                                ${thead}
+		                                            </tr>
+		                                        </thead>
+		                                        <tbody>
+		                                            ${rs}
+		                                        </tbody>
+		                                    </table>`;
+		                                ele.innerHTML += `<div class="card">
+								                            <div class="card-header">
+								                                ${rep.title}
+								                            </div>
+								                            <div class="card-body">
+								                                <blockquote class="blockquote mb-0">
+								                                    ${tab_element}
+								                                </blockquote>
+								                            </div>
+								                        </div>`
+		            				}
+		            			})
+		            		})
+            			prev = document.getElementById('prev_builds')
+            			text = ""
+            			json.builds.forEach(build => {
+            				text += `<li><a href="/packages/<%=repo%>/<%=pr%>/${build}">${build}</a></li>`
+            			})
+            			prev.innerHTML = `<ul>` + text + `</ul>`
+            		})
             </script>
 <% include footer %>
