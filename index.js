@@ -1,17 +1,21 @@
 var express = require("express");
 var logger  = require("logger").createLogger('development.log');
-// var ejs     = require("ejs");
 var fs      = require("fs");
 var request = require("request")
 var utils   = require("./utils");
+
+/* MIDDLEWARES */
 var app = express()
 app.use(express.urlencoded());
 app.use(express.json());
 app.use(express.static('public'))
 app.set('view engine', 'ejs');
+
+/* BOOTSTRAP */
 !fs.existsSync(__dirname + `/reports`) && fs.mkdirSync(__dirname + `/reports`);
 config = JSON.parse(fs.readFileSync(__dirname + "/config.json"))
-// Mongo Setup
+
+/* MONGO SETUP */
 const MongoClient = require('mongodb').MongoClient;
 const uri = config.db_url;
 let db;
@@ -19,57 +23,41 @@ MongoClient.connect(uri, { useNewUrlParser: true }, function(err, client) {
 	if (err) throw err;
 	db = client.db("main");
 });
-// CONFIG BEGIN
-KEY = "secret_secret_secret"
-// CONFIG END
 
-app.post("/report", (req, res) => {
-	key = req.body.key;
-	if (key !== KEY) {
-		res.status(401).send("not authorized");
-		return;
-	}
-
-	/* Generate a static report */
-	report = req.body.report;
-	utils.generate_report(report, db, (success) => {
-		if (success) {
-			logger.info(`Performance report generated for ${report.repo}#${report.pr}(${report.commit})`)
-		}
-		else {
-			logger.error(`Error generating report for ${report.repo}#${report.pr}(${report.commit})`)
-			res.send("error");
-			return;
-		}
-	});
-
-	res.send("ok");
-});
-
+/* PUBLIC ROUTES */
 app.get("/", (req, res) => {
-	res.render("index")
+	res.render("index", {registered_repos: config.registered_repos, org: config.org})
 });
 
 app.get("/packages/:repo", (req, res) => {
-	res.render("repo", {repo: req.params.repo});
+	if (config.registered_repos.includes(req.params.repo))
+		res.render("repo", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo});
+	else
+		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org})
 })
 
 app.get("/packages/:repo/:pr", (req, res) => {
-	res.render("pr", req.params)
+	if (config.registered_repos.includes(req.params.repo))
+		res.render("pr", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo, pr: req.params.pr})
+	else
+		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org})
 })
 
 app.get("/packages/:repo/:pr/:commit", (req, res) => {
-	/* Latest report */
-	res.render("build", {repo: req.params.repo, pr: req.params.pr, commit: req.params.commit})
+	if (config.registered_repos.includes(req.params.repo))
+		res.render("build", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo, pr: req.params.pr, commit: req.params.commit})
+	else
+		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org})
 }) 
 
-var listener = app.listen(process.env.PORT || 8081, () => {
-	logger.info(`Server running at ${listener.address().port}`)
-})
-
-// API
+/* API */
 
 app.get("/api/pr/:repo/:pr", (req,res) => {
+	if (!config.registered_repos.includes(req.params.repo)){
+		res.status(404).send("not found");
+		return;
+	}
+
 	request({
 		headers: {
 			"User-Agent": config.admin
@@ -88,6 +76,11 @@ app.get("/api/pr/:repo/:pr", (req,res) => {
 })
 
 app.get("/api/builds/:repo/:pr", (req, res) => {
+	if (!config.registered_repos.includes(req.params.repo)){
+		res.status(404).send("not found");
+		return;
+	}
+
 	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}`)) {
 		res.json({ message: "no repo" })
 		return;
@@ -112,6 +105,11 @@ app.get("/api/builds/:repo/:pr", (req, res) => {
 })
 
 app.get("/api/build/:repo/:pr/:commit", (req, res) => {
+	if (!config.registered_repos.includes(req.params.repo)){
+		res.status(404).send("not found");
+		return;
+	}
+
 	if(fs.existsSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.json`))
 		res.sendFile(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.json`)
 	else
@@ -119,6 +117,11 @@ app.get("/api/build/:repo/:pr/:commit", (req, res) => {
 })
 
 app.get("/api/repo_open_pulls/:repo", (req, res) => {
+	if (!config.registered_repos.includes(req.params.repo)){
+		res.status(404).send("not found");
+		return;
+	}
+
 	request({
 		headers: {
 			"User-Agent": config.admin
@@ -143,4 +146,37 @@ app.get("/api/repo_open_pulls/:repo", (req, res) => {
 			res.json(data);
 		}
 	})
+})
+
+app.post("/api/report", (req, res) => {
+	key = req.body.key;
+	if (key !== config.jenkins_secret) {
+		res.status(401).send("not authorized");
+		return;
+	}
+
+	report = req.body.report;
+	if (!config.registered_repos.includes(report.repo)){
+		res.status(404).send("not found");
+		return;
+	}
+
+	/* Generate a static report */
+	utils.generate_report(report, db, (success) => {
+		if (success) {
+			logger.info(`Performance report generated for ${report.repo}#${report.pr}(${report.commit})`)
+		}
+		else {
+			logger.error(`Error generating report for ${report.repo}#${report.pr}(${report.commit})`)
+			res.send("error");
+			return;
+		}
+	});
+
+	res.send("ok");
+});
+
+/* LISTEN */
+var listener = app.listen(process.env.PORT || 8081, () => {
+	logger.info(`Server running at ${listener.address().port}`)
 })

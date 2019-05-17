@@ -3,7 +3,7 @@
 			<div class="container-fluid dashboard-content">
                 <div class="row">
                     <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12" id="idx_pulls">
-                    	<img src="/assets/images/loading.svg">
+                    	<img src="/assets/images/loader.svg">
                     </div>
                     <script type="text/javascript">
                     	fetch("/api/repo_open_pulls/<%=repo%>")
@@ -24,7 +24,7 @@
 					                            <div class="card-body">
 					                                <blockquote class="blockquote mb-0">
 					                                    <p> ${pull.title} </p>
-					                                    <a href="https://github.com/JuliaDiffEq/<%=repo %>/pull/${pull.number}" class="btn btn-primary">Link to GitHub PR</a>
+					                                    <a href="https://github.com/<%=org %>/<%=repo %>/pull/${pull.number}" class="btn btn-primary">Link to GitHub PR</a>
 					                                    <a href="/packages/<%=repo %>/${pull.number}" class="btn btn-primary">Benchmark Results</a>
 					                                </blockquote>
 					                            </div>

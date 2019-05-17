@@ -1,8 +1,3 @@
-var ejs = require("ejs");
-var fs  = require("fs");
-
-template = ejs.compile(fs.readFileSync('report.ejs','utf8'))
-
 exports.generate_report = (report, db, cb) => {
 	if (!fs.existsSync(__dirname + `/reports/${report.repo}`)){
 		fs.mkdirSync(__dirname + `/reports/${report.repo}`);
@@ -27,8 +22,8 @@ exports.generate_report = (report, db, cb) => {
 			})
 		}
 	})
-	fs.writeFile(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.html`,
-				template(report), (err) => {
+	fs.writeFile(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.json`,
+				JSON.stringify(report.items), (err) => {
 					if (err)
 						cb(false);
 					else

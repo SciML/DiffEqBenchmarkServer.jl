@@ -13,19 +13,11 @@
                             <li class="nav-divider">
                                 Benchmarks
                             </li>
+                            <% registered_repos.forEach(function (rep) { %>    
                             <li class="nav-item">
-                                <a class="nav-link" href="/packages/OrdinaryDiffEq.jl">OrdinaryDiffEq</a>
+                                <a class="nav-link" href="/packages/<%=rep%>"><%=rep%></a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/packages/StochasticDiffEq.jl">StochasticDiffEq</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/packages/Sundials.jl">Sundials</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/packages/DiffEqBase.jl">DiffEqbase</a>
-                            </li>
-                            
+                            <% }) %>
                         </ul>
                     </div>
                 </nav>

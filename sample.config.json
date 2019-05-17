@@ -4,5 +4,6 @@
 	"jenkins_secret"           : "secret_secret_secret",
 	"org"                      : "JuliaDiffEq",
 	"github_outh_client_id"    : "ffffffffffffffffffff",
-	"github_outh_client_secret": "ffffffffffffffffffffffffffffffffffffffff"
+	"github_outh_client_secret": "ffffffffffffffffffffffffffffffffffffffff",
+	"registered_repos"         : ["OrdinaryDiffEq.jl", "StochasticDiffEq.jl"]
 }
