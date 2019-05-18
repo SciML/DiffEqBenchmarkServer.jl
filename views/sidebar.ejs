@@ -13,9 +13,9 @@
                             <li class="nav-divider">
                                 Benchmarks
                             </li>
-                            <% registered_repos.forEach(function (rep) { %>    
+                            <% registered_repos.forEach(function (rep) { %>
                             <li class="nav-item">
-                                <a class="nav-link" href="/packages/<%=rep%>"><%=rep%></a>
+                                <a class="nav-link <%= rep == repo ? "active" : ""%>" href="/packages/<%=rep%>"><%=rep%></a>
                             </li>
                             <% }) %>
                         </ul>

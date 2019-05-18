@@ -11,6 +11,14 @@
                                 </blockquote>
                             </div>
                         </div>
+                        <div class="card">
+                            <div class="card-header">Commit History</div>
+                            <div class="card-body">
+                                <blockquote class="blockquote mb-0">
+                                    <p id="commits_history"><img src="/assets/images/loader.svg"></p>
+                                </blockquote>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="row">
@@ -50,69 +58,89 @@
             			return res.json()
             		})
             		.then(json => {
-            			document.getElementById('latest_results').innerHTML = json.latest;
-            			fetch(`/api/build/<%=repo%>/<%=pr%>/${json.latest}`)
-		            		.then(res  => {
-		            			return res.json()
-		            		})
-		            		.then(json => {
-		            			ele = document.getElementById('reports')
-		            			json.forEach(rep => {
-		            				if (rep.type == "image") {
-			            				ele.innerHTML += `<div class="card">
-								                            <div class="card-header">
-								                                ${rep.title}
-								                            </div>
-								                            <div class="card-body">
-								                                <blockquote class="blockquote mb-0">
-								                                    <img src="${rep.data}">
-								                                </blockquote>
-								                            </div>
-								                        </div>`
-		            				}
-		            				else if (rep.type == "table") {
-		            					thead = ''
-		            					rep.data.head.forEach(h => {
-		            						thead += `<th scope="col">${h}</th>`
-		            					})
-		            					rs = ''
-		            					rep.data.table.forEach(r => {
-			        						x = ''
-		            						r.forEach(r1 => {
-		            							x += `<td>${r1}</td>`
-		            						})
-		            						x = `<tr>` + x + `</tr>`
-		            						rs += x
-		            					})
-		            					tab_element = `<table class="table table-bordered">
-		                                        <thead>
-		                                            <tr>
-		                                                ${thead}
-		                                            </tr>
-		                                        </thead>
-		                                        <tbody>
-		                                            ${rs}
-		                                        </tbody>
-		                                    </table>`;
-		                                ele.innerHTML += `<div class="card">
-								                            <div class="card-header">
-								                                ${rep.title}
-								                            </div>
-								                            <div class="card-body">
-								                                <blockquote class="blockquote mb-0">
-								                                    ${tab_element}
-								                                </blockquote>
-								                            </div>
-								                        </div>`
-		            				}
-		            			})
-		            		})
-            			prev = document.getElementById('prev_builds')
-            			text = ""
-            			json.builds.forEach(build => {
-            				text += `<li><a href="/packages/<%=repo%>/<%=pr%>/${build}">${build}</a></li>`
-            			})
-            			prev.innerHTML = `<ul>` + text + `</ul>`
+                        if (json.latest) {
+                			document.getElementById('latest_results').innerHTML = json.latest;
+                			fetch(`/api/build/<%=repo%>/<%=pr%>/${json.latest}`)
+    		            		.then(res  => {
+    		            			return res.json()
+    		            		})
+    		            		.then(json => {
+    		            			ele = document.getElementById('reports')
+    		            			json.forEach(rep => {
+    		            				if (rep.type == "image") {
+    			            				ele.innerHTML += `<div class="card">
+    								                            <div class="card-header">
+    								                                ${rep.title}
+    								                            </div>
+    								                            <div class="card-body">
+    								                                <blockquote class="blockquote mb-0">
+    								                                    <img src="${rep.data}">
+    								                                </blockquote>
+    								                            </div>
+    								                        </div>`
+    		            				}
+    		            				else if (rep.type == "table") {
+    		            					thead = ''
+    		            					rep.data.head.forEach(h => {
+    		            						thead += `<th scope="col">${h}</th>`
+    		            					})
+    		            					rs = ''
+    		            					rep.data.table.forEach(r => {
+    			        						x = ''
+    		            						r.forEach(r1 => {
+    		            							x += `<td>${r1}</td>`
+    		            						})
+    		            						x = `<tr>` + x + `</tr>`
+    		            						rs += x
+    		            					})
+    		            					tab_element = `<table class="table table-bordered">
+    		                                        <thead>
+    		                                            <tr>
+    		                                                ${thead}
+    		                                            </tr>
+    		                                        </thead>
+    		                                        <tbody>
+    		                                            ${rs}
+    		                                        </tbody>
+    		                                    </table>`;
+    		                                ele.innerHTML += `<div class="card">
+    								                            <div class="card-header">
+    								                                ${rep.title}
+    								                            </div>
+    								                            <div class="card-body">
+    								                                <blockquote class="blockquote mb-0">
+    								                                    ${tab_element}
+    								                                </blockquote>
+    								                            </div>
+    								                        </div>`
+    		            				}
+    		            			})
+    		            		})
+                			prev = document.getElementById('prev_builds')
+                			text = ""
+                			json.builds.forEach(build => {
+                				text += `<li><a href="/packages/<%=repo%>/<%=pr%>/${build}">${build}</a></li>`
+                			})
+                			prev.innerHTML = `<ul>` + text + `</ul>`
+                        }
+                        else {
+                            document.getElementById('latest_results').innerHTML = "No Builds Yet!"
+                            document.getElementById('prev_builds').innerHTML = "No Builds Yet!"
+                        }
             		})
+                fetch("/api/commits/<%=repo%>/<%=pr%>/")
+                    .then(res => {
+                        return res.json()
+                    })
+                    .then(json => {
+                        txt_commits = "<ul>"
+                        json.forEach(commit => {
+                            txt_commits += `
+                            <li> <a href="https://github.com/<%=org%>/<%=repo%>/pull/<%=pr%>/commits/${commit.sha}"><code>${commit.sha.substr(0,7)}</code></a> - ${commit.message}</li>
+                            `
+                        })
+                        txt_commits += "<ul>"
+                        document.getElementById('commits_history').innerHTML = txt_commits
+                    })
             </script>
 <% include footer %>

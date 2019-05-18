@@ -1,3 +1,5 @@
+var fs = require("fs")
+
 exports.generate_report = (report, db, cb) => {
 	if (!fs.existsSync(__dirname + `/reports/${report.repo}`)){
 		fs.mkdirSync(__dirname + `/reports/${report.repo}`);
@@ -29,4 +31,16 @@ exports.generate_report = (report, db, cb) => {
 					else
 						cb(true);
 				})
+}
+
+exports.generate_temp_report = (repo, pr, commit) => {
+	if (!fs.existsSync(__dirname + `/reports/${repo}`)){
+		fs.mkdirSync(__dirname + `/reports/${repo}`);
+	}
+
+	if (!fs.existsSync(__dirname + `/reports/${repo}/${pr}`)){
+		fs.mkdirSync(__dirname + `/reports/${repo}/${pr}`);
+	}
+
+	fs.writeFileSync(__dirname + `/reports/${repo}/${pr}/${commit}.waiting`, "")
 }

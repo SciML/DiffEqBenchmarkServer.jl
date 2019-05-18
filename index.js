@@ -26,7 +26,7 @@ MongoClient.connect(uri, { useNewUrlParser: true }, function(err, client) {
 
 /* PUBLIC ROUTES */
 app.get("/", (req, res) => {
-	res.render("index", {registered_repos: config.registered_repos, org: config.org})
+	res.render("index", {registered_repos: config.registered_repos, org: config.org, repo: ""})
 });
 
 app.get("/packages/:repo", (req, res) => {
@@ -75,6 +75,33 @@ app.get("/api/pr/:repo/:pr", (req,res) => {
 	})
 })
 
+app.get("/api/commits/:repo/:pr/", (req,res) => {
+	if (!config.registered_repos.includes(req.params.repo)){
+		res.status(404).send("not found");
+		return;
+	}
+
+	request({
+		headers: {
+			"User-Agent": config.admin
+		},
+		uri: `https://api.github.com/repos/${config.org}/${req.params.repo}/pulls/${req.params.pr}/commits?client_id=${config.github_outh_client_id}&client_secret=${config.github_outh_client_secret}`,
+		method: "GET"
+	}, (err, res2, body) => {
+		if (err) {
+			res.status(500).send("Internal Error");
+		}
+		else {
+			json = JSON.parse(body)
+			res_json = []
+			json.forEach((commit) => {
+				res_json.push({sha: commit.sha, message: commit.commit.message})
+			})
+			res.json(res_json)
+		}
+	})
+})
+
 app.get("/api/builds/:repo/:pr", (req, res) => {
 	if (!config.registered_repos.includes(req.params.repo)){
 		res.status(404).send("not found");
@@ -82,11 +109,11 @@ app.get("/api/builds/:repo/:pr", (req, res) => {
 	}
 
 	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}`)) {
-		res.json({ message: "no repo" })
+		res.json({ builds: [], latest: "" })
 		return;
 	}
 	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}`)) {
-		res.json({ message: "no pull" })
+		res.json({ builds: [], latest: "" })
 		return;
 	}
 	q = {"repo": req.params.repo, "pull": parseInt(req.params.pr)}
@@ -176,6 +203,81 @@ app.post("/api/report", (req, res) => {
 	res.send("ok");
 });
 
+/* BOT ENDPOINT */
+
+app.post(`/bot/${config.bot_secret}`, (req, res) => {
+	json = req.body;
+	if (json.action === "created"             &&
+		json.issue !== undefined              &&
+		json.comment !== undefined            &&
+		json.issue.pull_request !== undefined
+		) {
+		comment = json.comment.body.trim()
+		idx = comment.indexOf(`@${config.bot_name}`)
+		if (idx == -1) {
+			res.send("ok")
+			return;
+		}
+		if (json.repository.owner.login !== config.org || !config.registered_repos.includes(json.repository.name)) {
+			/* TODO: Send a comment that this repo is not authorized/registered */
+			github_comment(`Sorry, but this repository is not registered to work with me. cc @${config.admin}`, json.repository.name, json.issue.number)
+			res.send("ok")
+			return;
+		}
+		if (!config.benchmarkers.includes(json.comment.user.login)) {
+			/* TODO: send a comment that you cant do that */
+			github_comment(`Sorry, but you cannot do that, instead you can ask @${config.admin} to run benchmarks.`, json.repository.name, json.issue.number)
+			res.send("ok")
+			return;
+		}
+		if (idx != 0) {
+			/* TODO: send a comment that format is wrong */
+			github_comment(`Sorry, I couldn't understand that.`, json.repository.name, json.issue.number)
+			res.send("ok")
+			return;
+		}
+		command = comment.substr(2 + config.bot_name.length)
+		if (command === "runbenchmarks") {
+			logger.info(`benchmarking job sent for ${json.repository.name} by ${json.comment.user.login}`)
+			github_comment(`Your benchmarking request is accepted. I will get back to you once the job is complete.`, json.repository.name, json.issue.number)
+			request({
+				headers: {
+					"User-Agent": config.admin
+				},
+				method: "GET",
+				uri: `https://api.github.com/repos/${config.org}/${json.repository.name}/pulls/${json.issue.number}?client_id=${config.github_outh_client_id}&client_secret=${config.github_outh_client_secret}`
+			}, (err, res1, body) => {
+				if (err) throw err;
+				json2 = JSON.parse(body)
+				utils.generate_temp_report(json.repository.name, json.issue.number, json2.head.sha)
+				request({
+					uri: `${config.jenkins_url}/job/${config.jenkins_job}/buildWithParameters?ORG=${json.repository.owner.login}&REPOSITORY=${json.repository.name}&BRANCH=${json2.head.label}&token=${config.jenkins_auth_token}`,
+					method: "GET"
+				}, (err2, res2, body2) => {
+					if (err2) throw err2;
+					logger.info(`benchmarking job inititated for ${json.repository.name} by ${json.comment.user.login}`)
+				})
+			})
+		}
+
+	}
+})
+
+function github_comment(comment, repo, issue) {
+	request({
+		headers: {
+			"User-Agent": config.admin,
+			"Authorization": `token ${config.bot_account_token}`
+		},
+		method: "POST",
+		uri: `https://api.github.com/repos/${config.org}/${repo}/issues/${issue}/comments?client_id=${config.github_outh_client_id}&client_secret=${config.github_outh_client_secret}`,
+		body: `{ "body": "${comment}" }`
+	}, (err, res, body) => {
+		if (err) throw err;
+		if (JSON.parse(body).body !== comment)
+			logger.error("problem creating comment")
+	})
+}
 /* LISTEN */
 var listener = app.listen(process.env.PORT || 8081, () => {
 	logger.info(`Server running at ${listener.address().port}`)
