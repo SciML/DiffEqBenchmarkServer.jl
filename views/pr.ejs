@@ -116,15 +116,25 @@
     		            				}
     		            			})
     		            		})
-                			prev = document.getElementById('prev_builds')
-                			text = ""
-                			json.builds.forEach(build => {
-                				text += `<li><a href="/packages/<%=repo%>/<%=pr%>/${build}">${build}</a></li>`
-                			})
-                			prev.innerHTML = `<ul>` + text + `</ul>`
                         }
                         else {
                             document.getElementById('latest_results').innerHTML = "No Builds Yet!"
+                        }
+                        if (json.builds.length !== 0) {
+                			text = ""
+                			json.builds.forEach(build => {
+                                idx = build.indexOf(".")
+                                status = ""
+                                if (idx !== -1) {
+                                    status = "(<i>" + build.substr(idx+1) + "</i>)"
+                                    text += `<li>${build.substr(0,7)} ${status}</li>`
+                                }
+                                else
+                    				text += `<li><a href="/packages/<%=repo%>/<%=pr%>/${build}">${build.substr(0,7)} ${status}</a></li>`;
+                			})
+                			document.getElementById('prev_builds').innerHTML = `<ul>` + text + `</ul>`
+                        }
+                        else {
                             document.getElementById('prev_builds').innerHTML = "No Builds Yet!"
                         }
             		})

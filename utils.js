@@ -42,5 +42,5 @@ exports.generate_temp_report = (repo, pr, commit) => {
 		fs.mkdirSync(__dirname + `/reports/${repo}/${pr}`);
 	}
 
-	fs.writeFileSync(__dirname + `/reports/${repo}/${pr}/${commit}.waiting`, "")
+	fs.writeFileSync(__dirname + `/reports/${repo}/${pr}/${commit}.waiting.json`, "")
 }

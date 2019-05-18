@@ -250,8 +250,9 @@ app.post(`/bot/${config.bot_secret}`, (req, res) => {
 				if (err) throw err;
 				json2 = JSON.parse(body)
 				utils.generate_temp_report(json.repository.name, json.issue.number, json2.head.sha)
+				url = encodeURI(`${config.jenkins_url}/job/${config.jenkins_job}/buildWithParameters?ORG=${(json.repository.owner.login)}&REPOSITORY=${(json.repository.name)}&PR=${json.issue.number}&token=${(config.jenkins_auth_token)}`)
 				request({
-					uri: `${config.jenkins_url}/job/${config.jenkins_job}/buildWithParameters?ORG=${json.repository.owner.login}&REPOSITORY=${json.repository.name}&BRANCH=${json2.head.label}&token=${config.jenkins_auth_token}`,
+					uri: url,
 					method: "GET"
 				}, (err2, res2, body2) => {
 					if (err2) throw err2;

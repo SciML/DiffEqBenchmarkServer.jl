@@ -5,5 +5,12 @@
 	"org"                      : "JuliaDiffEq",
 	"github_outh_client_id"    : "ffffffffffffffffffff",
 	"github_outh_client_secret": "ffffffffffffffffffffffffffffffffffffffff",
-	"registered_repos"         : ["OrdinaryDiffEq.jl", "StochasticDiffEq.jl"]
+	"registered_repos"         : ["OrdinaryDiffEq.jl", "StochasticDiffEq.jl"],
+	"bot_secret"               : "some_secret",
+	"bot_name"                 : "DiffEqBot",
+	"bot_account_token"        : "ffffffffffffffffffffffffffffffffffffffff",
+	"benchmarkers"             : ["kanav99"],
+	"jenkins_url"              : "http://user:password@localhost:8080",
+	"jenkins_auth_token"       : "jenkins_token",
+	"jenkins_job"              : "jobname"
 }
