@@ -107,7 +107,15 @@ app.get("/api/builds/:repo/:pr", (req, res) => {
 	q = {"repo": req.params.repo, "pull": parseInt(req.params.pr)}
 	db.collection("pulls").findOne(q, (err, result) => {
 		if (err) throw err;
-		builds = fs.readdirSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}`)
+		dir = __dirname + `/reports/${req.params.repo}/${req.params.pr}/`
+		builds = fs.readdirSync(dir)
+					.map(function(v) { 
+	                  return { name:v,
+	                           time:fs.statSync(dir + v).mtime.getTime()
+	                         }; 
+	               })
+	               .sort(function(a, b) { return b.time - a.time; })
+	               .map(function(v) { return v.name; });
 		for (var i = builds.length - 1; i >= 0; i--) {
 			builds[i] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
 		}
@@ -173,6 +181,7 @@ app.post("/api/report", (req, res) => {
 	/* Generate a static report */
 	utils.generate_report(report, db, (success) => {
 		if (success) {
+			github.makeComment(`Benchmark report for ${report.commit.substr(0,7)} is generated and can be found [here](${config.homepage_url}/packages/${report.repo}/${report.pr}/${report.commit})`, config.org, report.repo, report.pr)
 			logger.info(`Performance report generated for ${report.repo}#${report.pr}(${report.commit})`)
 		}
 		else {

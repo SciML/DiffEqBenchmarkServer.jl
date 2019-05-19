@@ -58,8 +58,9 @@
             			return res.json()
             		})
             		.then(json => {
+                        LATEST_BUILD = json.latest;
                         if (json.latest) {
-                			document.getElementById('latest_results').innerHTML = json.latest;
+                			document.getElementById('latest_results').innerHTML = `<code>${json.latest.substr(0,7)}</code> `;
                 			fetch(`/api/build/<%=repo%>/<%=pr%>/${json.latest}`)
     		            		.then(res  => {
     		            			return res.json()
@@ -120,6 +121,23 @@
                         else {
                             document.getElementById('latest_results').innerHTML = "No Builds Yet!"
                         }
+                        fetch("/api/commits/<%=repo%>/<%=pr%>/")
+                            .then(res => {
+                                return res.json()
+                            })
+                            .then(json => {
+                                txt_commits = "<ul>"
+                                json.forEach(commit => {
+                                    if (commit.sha == LATEST_BUILD) {
+                                        document.getElementById('latest_results').innerHTML += `- ${commit.message}`
+                                    }
+                                    txt_commits += `
+                                    <li> <a href="https://github.com/<%=org%>/<%=repo%>/pull/<%=pr%>/commits/${commit.sha}"><code>${commit.sha.substr(0,7)}</code></a> - ${commit.message}</li>
+                                    `
+                                })
+                                txt_commits += "<ul>"
+                                document.getElementById('commits_history').innerHTML = txt_commits
+                            })
                         if (json.builds.length !== 0) {
                 			text = ""
                 			json.builds.forEach(build => {
@@ -138,19 +156,5 @@
                             document.getElementById('prev_builds').innerHTML = "No Builds Yet!"
                         }
             		})
-                fetch("/api/commits/<%=repo%>/<%=pr%>/")
-                    .then(res => {
-                        return res.json()
-                    })
-                    .then(json => {
-                        txt_commits = "<ul>"
-                        json.forEach(commit => {
-                            txt_commits += `
-                            <li> <a href="https://github.com/<%=org%>/<%=repo%>/pull/<%=pr%>/commits/${commit.sha}"><code>${commit.sha.substr(0,7)}</code></a> - ${commit.message}</li>
-                            `
-                        })
-                        txt_commits += "<ul>"
-                        document.getElementById('commits_history').innerHTML = txt_commits
-                    })
             </script>
 <% include footer %>

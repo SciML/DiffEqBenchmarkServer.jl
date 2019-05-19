@@ -24,6 +24,9 @@ exports.generate_report = (report, db, cb) => {
 			})
 		}
 	})
+	if(fs.existsSync(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.waiting.json`)) {
+		fs.unlinkSync(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.waiting.json`)
+	}
 	fs.writeFile(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.json`,
 				JSON.stringify(report.items), (err) => {
 					if (err)
