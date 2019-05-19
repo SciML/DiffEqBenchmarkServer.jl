@@ -1,6 +1,7 @@
 {
 	"admin"                    : "github_handle",
 	"db_url"                   : "mongodb+srv://uid:pass@server.com/db?retryWrites=true",
+	"homepage_url"             : "http://server.io",
 	"jenkins_secret"           : "secret_secret_secret",
 	"org"                      : "JuliaDiffEq",
 	"github_outh_client_id"    : "ffffffffffffffffffff",
