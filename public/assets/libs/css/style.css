@@ -7038,3 +7038,7 @@ Media Query
       justify-content: space-between;
       align-items: center;
 }
+
+.slimScrollDiv {
+    height: 100%;
+}
