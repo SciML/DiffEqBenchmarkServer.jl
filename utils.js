@@ -1,6 +1,6 @@
 var fs = require("fs")
 
-exports.generate_report = (report, db, cb) => {
+exports.generate_report = (report, cb) => {
 	if (!fs.existsSync(__dirname + `/reports/${report.repo}`)){
 		fs.mkdirSync(__dirname + `/reports/${report.repo}`);
 	}
@@ -10,6 +10,9 @@ exports.generate_report = (report, db, cb) => {
 	}
 	if(fs.existsSync(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.waiting.json`)) {
 		fs.unlinkSync(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.waiting.json`)
+	}
+	if(fs.existsSync(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.running.json`)) {
+		fs.unlinkSync(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.running.json`)
 	}
 	fs.writeFile(__dirname + `/reports/${report.repo}/${report.pr}/${report.commit}.json`,
 				JSON.stringify(report.items), (err) => {
@@ -30,4 +33,13 @@ exports.generate_temp_report = (repo, pr, commit) => {
 	}
 
 	fs.writeFileSync(__dirname + `/reports/${repo}/${pr}/${commit}.waiting.json`, "")
+}
+
+exports.job_started = (repo, pr, commit) => {
+	fs.unlinkSync(__dirname + `/reports/${repo}/${pr}/${commit}.waiting.json`)
+	fs.writeFileSync(__dirname + `/reports/${repo}/${pr}/${commit}.running.json`, "")
+}
+
+exports.job_failed = (repo, pr, commit) => {
+
 }

@@ -74,6 +74,9 @@ fetch("/api/builds/<%=repo%>/<%=pr%>")
                     if (status === "waiting") {
                         text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-waiting"></i></li></div>`
                     }
+                    else if (status === "running") {
+                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-running"></i></li></div>`
+                    }
                 }
                 else{
                     status = "success"
@@ -103,7 +106,7 @@ fetch("/api/builds/<%=repo%>/<%=pr%>")
 					                            <div class="card-header">
 					                                ${rep.title}
 					                            </div>
-			                                    <img src="${rep.data}" class="card-img-top">
+			                                    <img src="${rep.data}" class="card-img-top" data-action="zoom">
 					                            <div class="card-body">
 					                                
 					                            </div>

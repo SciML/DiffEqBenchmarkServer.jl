@@ -21,7 +21,7 @@
 						                            </div>
 						                            <div class="card-body">
 						                                <blockquote class="blockquote mb-0">
-						                                    <img src="${rep.data}">
+						                                    <img class="card-img-top" data-action="zoom" src="${rep.data}">
 						                                </blockquote>
 						                            </div>
 						                        </div>`
@@ -40,7 +40,7 @@
             						x = `<tr>` + x + `</tr>`
             						rs += x
             					})
-            					tab_element = `<table class="table table-bordered">
+            					tab_element = `<table class="table table-bordered table-responsive">
                                         <thead>
                                             <tr>
                                                 ${thead}

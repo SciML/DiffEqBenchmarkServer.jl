@@ -6995,11 +6995,9 @@ Media Query
     }
 }
 .dot-running {
-    border-radius: 50%;
-    width: 12px;
-    height: 12px;
+    font-size: 15px;
     opacity: 0.25;
-    background-color: green;
+    color: green;
     position: absolute;
     right:50px;
     -webkit-animation: up-right 1s infinite;

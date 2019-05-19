@@ -148,6 +148,7 @@ app.get("/api/repo_open_pulls/:repo", (req, res) => {
 	})
 })
 
+/* FOR JENKINS */
 app.post("/api/report", (req, res) => {
 	key = req.body.key;
 	if (key !== config.jenkins_secret) {
@@ -177,6 +178,14 @@ app.post("/api/report", (req, res) => {
 	res.send("ok");
 });
 
+app.get("/api/report_started", (req, res) => {
+	console.log("yo")
+	utils.job_started(req.query.repo, req.query.pr, req.query.commit)
+	res.send("ok")
+})
+app.get("/api/report_failed", (req, res) => {
+	utils.job_failed(req.query.repo, req.query.pr, req.query.commit)
+})
 /* BOT ENDPOINT */
 
 app.post(`/bot/${config.bot_secret}`, (req, res) => {
