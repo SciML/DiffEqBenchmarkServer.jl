@@ -22,7 +22,7 @@
                     </div>
                 </div>
                 <div class="row">
-                	<div class="col-xl-9 col-lg-9 col-md-9 col-sm-9 col-9" id="reports">
+                	<div class="col-xl-9 col-lg-9 col-md-9 col-sm-9 col-9">
                         <div class="card">
                             <div class="card-header">Latest Push Results</div>
                             <div class="card-body">
@@ -43,118 +43,125 @@
                     	</div>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-6" id="reports">
+                    </div>
+                </div>
             </div>
             <script type="text/javascript">
-            	fetch("/api/pr/<%=repo%>/<%=pr%>")
-            		.then(res  => {
-            			return res.json()
-            		})
-            		.then(json => {
-            			document.getElementById('pr_head').innerHTML = `#<%=pr %> by ${json.author}`;
-            			document.getElementById('pr_title').innerHTML = json.title;
-            		})
-            	fetch("/api/builds/<%=repo%>/<%=pr%>")
-            		.then(res => {
-            			return res.json()
-            		})
-            		.then(json => {
-                        LATEST_BUILD = json.latest;
-                        if (json.latest) {
-                			document.getElementById('latest_results').innerHTML = `<code>${json.latest.substr(0,7)}</code> `;
-                			fetch(`/api/build/<%=repo%>/<%=pr%>/${json.latest}`)
-    		            		.then(res  => {
-    		            			return res.json()
-    		            		})
-    		            		.then(json => {
-    		            			ele = document.getElementById('reports')
-    		            			json.forEach(rep => {
-    		            				if (rep.type == "image") {
-    			            				ele.innerHTML += `<div class="card">
-    								                            <div class="card-header">
-    								                                ${rep.title}
-    								                            </div>
-    								                            <div class="card-body">
-    								                                <blockquote class="blockquote mb-0">
-    								                                    <img src="${rep.data}">
-    								                                </blockquote>
-    								                            </div>
-    								                        </div>`
-    		            				}
-    		            				else if (rep.type == "table") {
-    		            					thead = ''
-    		            					rep.data.head.forEach(h => {
-    		            						thead += `<th scope="col">${h}</th>`
-    		            					})
-    		            					rs = ''
-    		            					rep.data.table.forEach(r => {
-    			        						x = ''
-    		            						r.forEach(r1 => {
-    		            							x += `<td>${r1}</td>`
-    		            						})
-    		            						x = `<tr>` + x + `</tr>`
-    		            						rs += x
-    		            					})
-    		            					tab_element = `<table class="table table-bordered">
-    		                                        <thead>
-    		                                            <tr>
-    		                                                ${thead}
-    		                                            </tr>
-    		                                        </thead>
-    		                                        <tbody>
-    		                                            ${rs}
-    		                                        </tbody>
-    		                                    </table>`;
-    		                                ele.innerHTML += `<div class="card">
-    								                            <div class="card-header">
-    								                                ${rep.title}
-    								                            </div>
-    								                            <div class="card-body">
-    								                                <blockquote class="blockquote mb-0">
-    								                                    ${tab_element}
-    								                                </blockquote>
-    								                            </div>
-    								                        </div>`
-    		            				}
-    		            			})
-    		            		})
-                        }
-                        else {
-                            document.getElementById('latest_results').innerHTML = "No Builds Yet!"
-                        }
-                        fetch("/api/commits/<%=repo%>/<%=pr%>/")
-                            .then(res => {
-                                return res.json()
-                            })
-                            .then(json => {
-                                txt_commits = "<ul>"
-                                json.forEach(commit => {
-                                    if (commit.sha == LATEST_BUILD) {
-                                        document.getElementById('latest_results').innerHTML += `- ${commit.message}`
-                                    }
-                                    txt_commits += `
-                                    <li> <a href="https://github.com/<%=org%>/<%=repo%>/pull/<%=pr%>/commits/${commit.sha}"><code>${commit.sha.substr(0,7)}</code></a> - ${commit.message}</li>
-                                    `
-                                })
-                                txt_commits += "<ul>"
-                                document.getElementById('commits_history').innerHTML = txt_commits
-                            })
-                        if (json.builds.length !== 0) {
-                			text = ""
-                			json.builds.forEach(build => {
-                                idx = build.indexOf(".")
-                                status = ""
-                                if (idx !== -1) {
-                                    status = "(<i>" + build.substr(idx+1) + "</i>)"
-                                    text += `<li>${build.substr(0,7)} ${status}</li>`
-                                }
-                                else
-                    				text += `<li><a href="/packages/<%=repo%>/<%=pr%>/${build}">${build.substr(0,7)} ${status}</a></li>`;
-                			})
-                			document.getElementById('prev_builds').innerHTML = `<ul>` + text + `</ul>`
-                        }
-                        else {
-                            document.getElementById('prev_builds').innerHTML = "No Builds Yet!"
-                        }
-            		})
+fetch("/api/pr/<%=repo%>/<%=pr%>")
+	.then(res  => {
+		return res.json()
+	})
+	.then(json => {
+		document.getElementById('pr_head').innerHTML = `#<%=pr %> by ${json.author}`;
+		document.getElementById('pr_title').innerHTML = json.title;
+	})
+fetch("/api/builds/<%=repo%>/<%=pr%>")
+	.then(res => {
+		return res.json()
+	})
+	.then(json => {
+        LATEST_BUILD = json.latest;
+        if (json.latest) {
+			document.getElementById('latest_results').innerHTML = `<code>${json.latest.substr(0,7)}</code> `;
+			fetch(`/api/build/<%=repo%>/<%=pr%>/${json.latest}`)
+        		.then(res  => {
+        			return res.json()
+        		})
+        		.then(json => {
+        			ele = document.getElementById('reports')
+        			json.forEach(rep => {
+        				if (rep.type == "image") {
+            				ele.innerHTML += `<div class="card">
+					                            <div class="card-header">
+					                                ${rep.title}
+					                            </div>
+			                                    <img src="${rep.data}" class="card-img-top">
+					                            <div class="card-body">
+					                                
+					                            </div>
+					                        </div>`
+        				}
+        				else if (rep.type == "table") {
+        					thead = ''
+        					rep.data.head.forEach(h => {
+        						thead += `<th scope="col">${h}</th>`
+        					})
+        					rs = ''
+        					rep.data.table.forEach(r => {
+        						x = ''
+        						r.forEach(r1 => {
+        							x += `<td>${r1}</td>`
+        						})
+        						x = `<tr>` + x + `</tr>`
+        						rs += x
+        					})
+        					tab_element = `<table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            ${thead}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rs}
+                                    </tbody>
+                                </table>`;
+                            ele.innerHTML += `<div class="card">
+					                            <div class="card-header">
+					                                ${rep.title}
+					                            </div>
+					                            <div class="card-body">
+					                                <blockquote class="blockquote mb-0">
+					                                    ${tab_element}
+					                                </blockquote>
+					                            </div>
+					                        </div>`
+        				}
+        			})
+        		})
+        }
+        else {
+            document.getElementById('latest_results').innerHTML = "No Builds Yet!"
+        }
+        fetch("/api/commits/<%=repo%>/<%=pr%>/")
+            .then(res => {
+                return res.json()
+            })
+            .then(json => {
+                txt_commits = "<ul>"
+                json.forEach(commit => {
+                    if (commit.sha == LATEST_BUILD) {
+                        document.getElementById('latest_results').innerHTML += `- ${commit.message}`
+                    }
+                    txt_commits += `
+                    <li> <a href="https://github.com/<%=org%>/<%=repo%>/pull/<%=pr%>/commits/${commit.sha}"><code>${commit.sha.substr(0,7)}</code></a> - ${commit.message}</li>
+                    `
+                })
+                txt_commits += "<ul>"
+                document.getElementById('commits_history').innerHTML = txt_commits
+            })
+        if (json.builds.length !== 0) {
+			text = ""
+			json.builds.forEach(build => {
+                idx = build.indexOf(".")
+                status = ""
+                if (idx !== -1) {
+                    status = build.substr(idx+1)
+                    if (status === "waiting") {
+                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-waiting"></i></li></div>`
+                    }
+                }
+                else{
+                    status = "success"
+    				text += `<div><li class="build-list-item"><a href="/packages/<%=repo%>/<%=pr%>/${build}"><code>${build.substr(0,7)}</code></a><i class="fa fa-check dot-success"></i></li></div>`;
+                }
+			})
+			document.getElementById('prev_builds').innerHTML = `<ul class="build-list">` + text + `</ul>`
+        }
+        else {
+            document.getElementById('prev_builds').innerHTML = "No Builds Yet!"
+        }
+	})
             </script>
 <% include footer %>

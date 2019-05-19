@@ -6975,3 +6975,66 @@ Media Query
 
 /* Custom, iPhone Retina */
 @media only screen and (max-width:320px) {}
+
+
+/* Customizations: Kanav */
+/* Blinking Dot */
+
+@keyframes up-right {
+    0% {
+        transform: scale(1);
+        opacity: .25
+    }
+    50% {
+        transform: scale (1, 5);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: .25;
+    }
+}
+.dot-running {
+    border-radius: 50%;
+    width: 12px;
+    height: 12px;
+    opacity: 0.25;
+    background-color: green;
+    position: absolute;
+    right:50px;
+    -webkit-animation: up-right 1s infinite;
+    -moz-animation: up-right 1s infinite;
+    -o-animation: up-right 1s infinite;
+    animation: up-right 1s infinite;
+}
+.dot-waiting {
+    font-size: 15px;
+    color: yellow;
+    position: absolute;
+    right:50px;
+    margin-top: 7px;
+}
+.dot-success {
+    font-size: 15px;
+    color: green;
+    position: absolute;
+    right:50px;
+    margin-top: 7px;
+}
+.dot-failed {
+    font-size: 15px;
+    color: red;
+    position: absolute;
+    right:50px;
+    margin-top: 7px;
+}
+
+#build-list {
+    width: 10em;
+}
+
+#build-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+}
