@@ -8,7 +8,7 @@ var Jenkins = require("./jenkins").Jenkins
 
 /* MIDDLEWARES */
 var app = express()
-app.use(express.urlencoded());
+app.use(express.urlencoded({extended: true}));
 app.use(express.json());
 app.use(express.static('public'))
 app.set('view engine', 'ejs');

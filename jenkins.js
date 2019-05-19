@@ -1,4 +1,5 @@
-request = require("request")
+var request = require("request")
+var logger  = require("logger").createLogger('development.log');
 
 function Jenkins(url, job, authtoken) {
 	this.url = url

@@ -1,4 +1,5 @@
-request = require("request")
+var request = require("request")
+var logger  = require("logger").createLogger('development.log');
 
 function GitHub(agent, client_id, client_secret, comment_token) {
 	this.agent = agent
@@ -54,6 +55,8 @@ GitHub.prototype.makeComment = function(comment, org, repo, issue) {
 		body: `{ "body": "${comment}" }`
 	}, (err, res, body) => {
 		if (err) throw err
+		if (JSON.parse(body).body !== comment)
+			logger.error("Problem making comment on GitHub")
 	})
 }
 
