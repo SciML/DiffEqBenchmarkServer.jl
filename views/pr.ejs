@@ -61,11 +61,37 @@ fetch("/api/builds/<%=repo%>/<%=pr%>")
 	.then(res => {
 		return res.json()
 	})
-	.then(json => {
-        LATEST_BUILD = json.latest;
-        if (json.latest) {
-			document.getElementById('latest_results').innerHTML = `<code>${json.latest.substr(0,7)}</code> `;
-			fetch(`/api/build/<%=repo%>/<%=pr%>/${json.latest}`)
+	.then(json => {  
+        found_latest = false;
+        LATEST_BUILD = ""
+        if (json.builds.length !== 0) {
+			text = ""
+			json.builds.forEach(build => {
+                idx = build.indexOf(".")
+                status = ""
+                if (idx !== -1) {
+                    status = build.substr(idx+1)
+                    if (status === "waiting") {
+                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-waiting"></i></li></div>`
+                    }
+                }
+                else{
+                    status = "success"
+    				text += `<div><li class="build-list-item"><a href="/packages/<%=repo%>/<%=pr%>/${build}"><code>${build.substr(0,7)}</code></a><i class="fa fa-check dot-success"></i></li></div>`;
+                    if (!found_latest) {
+                        found_latest = true;
+                        LATEST_BUILD = build;
+                    }
+                }
+			})
+			document.getElementById('prev_builds').innerHTML = `<ul class="build-list">` + text + `</ul>`
+        }
+        else {
+            document.getElementById('prev_builds').innerHTML = "No Builds Yet!"
+        }
+        if (found_latest) {
+			document.getElementById('latest_results').innerHTML = `<code>${ LATEST_BUILD.substr(0,7)}</code> `;
+			fetch(`/api/build/<%=repo%>/<%=pr%>/${LATEST_BUILD}`)
         		.then(res  => {
         			return res.json()
         		})
@@ -141,27 +167,6 @@ fetch("/api/builds/<%=repo%>/<%=pr%>")
                 txt_commits += "<ul>"
                 document.getElementById('commits_history').innerHTML = txt_commits
             })
-        if (json.builds.length !== 0) {
-			text = ""
-			json.builds.forEach(build => {
-                idx = build.indexOf(".")
-                status = ""
-                if (idx !== -1) {
-                    status = build.substr(idx+1)
-                    if (status === "waiting") {
-                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-waiting"></i></li></div>`
-                    }
-                }
-                else{
-                    status = "success"
-    				text += `<div><li class="build-list-item"><a href="/packages/<%=repo%>/<%=pr%>/${build}"><code>${build.substr(0,7)}</code></a><i class="fa fa-check dot-success"></i></li></div>`;
-                }
-			})
-			document.getElementById('prev_builds').innerHTML = `<ul class="build-list">` + text + `</ul>`
-        }
-        else {
-            document.getElementById('prev_builds').innerHTML = "No Builds Yet!"
-        }
 	})
             </script>
 <% include footer %>

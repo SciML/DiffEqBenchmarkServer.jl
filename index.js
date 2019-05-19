@@ -19,15 +19,6 @@ config = JSON.parse(fs.readFileSync(__dirname + "/config.json"))
 github = new GitHub(config.admin, config.github_outh_client_id, config.github_outh_client_secret, config.bot_account_token)
 jenkins = new Jenkins(config.jenkins_url, config.jenkins_job, config.jenkins_auth_token)
 
-/* MONGO SETUP */
-const MongoClient = require('mongodb').MongoClient;
-const uri = config.db_url;
-let db;
-MongoClient.connect(uri, { useNewUrlParser: true }, function(err, client) {
-	if (err) throw err;
-	db = client.db("main");
-});
-
 /* PUBLIC ROUTES */
 app.get("/", (req, res) => {
 	res.render("index", {registered_repos: config.registered_repos, org: config.org, repo: ""})
@@ -97,34 +88,26 @@ app.get("/api/builds/:repo/:pr", (req, res) => {
 	}
 
 	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}`)) {
-		res.json({ builds: [], latest: "" })
+		res.json({ builds: [] })
 		return;
 	}
 	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}`)) {
-		res.json({ builds: [], latest: "" })
+		res.json({ builds: [] })
 		return;
 	}
-	q = {"repo": req.params.repo, "pull": parseInt(req.params.pr)}
-	db.collection("pulls").findOne(q, (err, result) => {
-		if (err) throw err;
-		dir = __dirname + `/reports/${req.params.repo}/${req.params.pr}/`
-		builds = fs.readdirSync(dir)
-					.map(function(v) { 
-	                  return { name:v,
-	                           time:fs.statSync(dir + v).mtime.getTime()
-	                         }; 
-	               })
-	               .sort(function(a, b) { return b.time - a.time; })
-	               .map(function(v) { return v.name; });
-		for (var i = builds.length - 1; i >= 0; i--) {
-			builds[i] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
-		}
-		if (result)
-			latest = result.latest
-		else
-			latest = ""
-		res.json({builds, latest})
-	})
+	dir = __dirname + `/reports/${req.params.repo}/${req.params.pr}/`
+	builds = fs.readdirSync(dir)
+				.map(function(v) { 
+                  return { name:v,
+                           time:fs.statSync(dir + v).mtime.getTime()
+                         }; 
+               })
+               .sort(function(a, b) { return b.time - a.time; })
+               .map(function(v) { return v.name; });
+	for (var i = builds.length - 1; i >= 0; i--) {
+		builds[i] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
+	}
+	res.json({builds})
 })
 
 app.get("/api/build/:repo/:pr/:commit", (req, res) => {
@@ -179,7 +162,7 @@ app.post("/api/report", (req, res) => {
 	}
 
 	/* Generate a static report */
-	utils.generate_report(report, db, (success) => {
+	utils.generate_report(report, (success) => {
 		if (success) {
 			github.makeComment(`Benchmark report for ${report.commit.substr(0,7)} is generated and can be found [here](${config.homepage_url}/packages/${report.repo}/${report.pr}/${report.commit})`, config.org, report.repo, report.pr)
 			logger.info(`Performance report generated for ${report.repo}#${report.pr}(${report.commit})`)
