@@ -72,15 +72,18 @@ fetch("/api/builds/<%=repo%>/<%=pr%>")
                 if (idx !== -1) {
                     status = build.substr(idx+1)
                     if (status === "waiting") {
-                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-waiting"></i></li></div>`
+                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-waiting" title="Waiting"></i></li></div>`
                     }
                     else if (status === "running") {
-                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-running"></i></li></div>`
+                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-circle dot-running" title="Running"></i></li></div>`
+                    }
+                    else if (status === "failed") {
+                        text += `<div><li><code>${build.substr(0,7)}</code><i class="fa fa-close dot-failed" title="Failed"></i></li></div>`
                     }
                 }
                 else{
                     status = "success"
-    				text += `<div><li class="build-list-item"><a href="/packages/<%=repo%>/<%=pr%>/${build}"><code>${build.substr(0,7)}</code></a><i class="fa fa-check dot-success"></i></li></div>`;
+    				text += `<div><li class="build-list-item"><a href="/packages/<%=repo%>/<%=pr%>/${build}"><code>${build.substr(0,7)}</code></a><i class="fa fa-check dot-success" title="Success"></i></li></div>`;
                     if (!found_latest) {
                         found_latest = true;
                         LATEST_BUILD = build;

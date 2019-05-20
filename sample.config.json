@@ -13,5 +13,7 @@
 	"benchmarkers"             : ["kanav99"],
 	"jenkins_url"              : "http://user:password@localhost:8080",
 	"jenkins_auth_token"       : "jenkins_token",
-	"jenkins_job"              : "jobname"
+	"jenkins_job"              : "jobname",
+	"jenkins_user"             : "kanav",
+	"jenkins_password"         : "password"
 }

@@ -17,32 +17,33 @@ app.set('view engine', 'ejs');
 !fs.existsSync(__dirname + `/reports`) && fs.mkdirSync(__dirname + `/reports`);
 config = JSON.parse(fs.readFileSync(__dirname + "/config.json"))
 github = new GitHub(config.admin, config.github_outh_client_id, config.github_outh_client_secret, config.bot_account_token)
-jenkins = new Jenkins(config.jenkins_url, config.jenkins_job, config.jenkins_auth_token)
+jenkins = new Jenkins(config.jenkins_url, config.jenkins_job, config.jenkins_auth_token, config.homepage_url, config.jenkins_user, config.jenkins_password)
 
 /* PUBLIC ROUTES */
 app.get("/", (req, res) => {
-	res.render("index", {registered_repos: config.registered_repos, org: config.org, repo: ""})
+	res.render("index", {registered_repos: config.registered_repos, org: config.org, repo: "", bot: config.bot_name, benchmarkers: config.benchmarkers, admin: config.admin})
 });
 
 app.get("/packages/:repo", (req, res) => {
 	if (config.registered_repos.includes(req.params.repo))
 		res.render("repo", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo});
 	else
-		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org})
+		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo})
 })
 
 app.get("/packages/:repo/:pr", (req, res) => {
 	if (config.registered_repos.includes(req.params.repo))
 		res.render("pr", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo, pr: req.params.pr})
 	else
-		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org})
+		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo})
 })
 
 app.get("/packages/:repo/:pr/:commit", (req, res) => {
-	if (config.registered_repos.includes(req.params.repo))
-		res.render("build", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo, pr: req.params.pr, commit: req.params.commit})
+	if (config.registered_repos.includes(req.params.repo) && (req.params.commit.indexOf(".") === -1)) {
+			res.render("build", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo, pr: req.params.pr, commit: req.params.commit})
+	}
 	else
-		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org})
+		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo})
 }) 
 
 /* API */
@@ -104,14 +105,29 @@ app.get("/api/builds/:repo/:pr", (req, res) => {
                })
                .sort(function(a, b) { return b.time - a.time; })
                .map(function(v) { return v.name; });
+    found_qid = false;
 	for (var i = builds.length - 1; i >= 0; i--) {
-		builds[i] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
+		if (builds[i] === "qid") {
+			found_qid = true;
+			continue;
+		}
+		if (found_qid) {
+			builds[i+1] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
+		}
+		else {
+			builds[i] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
+		}
 	}
-	res.json({builds})
+	if (found_qid) {
+		res.json({builds: builds.splice(1)})
+	}
+	else {
+		res.json({builds})
+	}
 })
 
 app.get("/api/build/:repo/:pr/:commit", (req, res) => {
-	if (!config.registered_repos.includes(req.params.repo)){
+	if (!config.registered_repos.includes(req.params.repo) || (req.params.commit.indexOf(".") !== -1)){
 		res.status(404).send("not found");
 		return;
 	}
@@ -179,12 +195,12 @@ app.post("/api/report", (req, res) => {
 });
 
 app.get("/api/report_started", (req, res) => {
-	console.log("yo")
 	utils.job_started(req.query.repo, req.query.pr, req.query.commit)
 	res.send("ok")
 })
 app.get("/api/report_failed", (req, res) => {
 	utils.job_failed(req.query.repo, req.query.pr, req.query.commit)
+	res.send("ok")
 })
 /* BOT ENDPOINT */
 
@@ -202,31 +218,49 @@ app.post(`/bot/${config.bot_secret}`, (req, res) => {
 			return;
 		}
 		if (json.repository.owner.login !== config.org || !config.registered_repos.includes(json.repository.name)) {
-			/* TODO: Send a comment that this repo is not authorized/registered */
+			/* Send a comment that this repo is not authorized/registered */
 			github.makeComment(`Sorry, but this repository is not registered to work with me. cc @${config.admin}`, config.org, json.repository.name, json.issue.number)
 			res.send("ok")
 			return;
 		}
 		if (!config.benchmarkers.includes(json.comment.user.login)) {
-			/* TODO: send a comment that you cant do that */
+			/* send a comment that you cant do that */
 			github.makeComment(`Sorry, but you cannot do that, instead you can ask @${config.admin} to run benchmarks.`, config.org, json.repository.name, json.issue.number)
 			res.send("ok")
 			return;
 		}
 		if (idx != 0) {
-			/* TODO: send a comment that format is wrong */
+			/* send a comment that format is wrong */
 			github.makeComment(`Sorry, I couldn't understand that.`, json.repository.name, json.issue.number)
 			res.send("ok")
 			return;
 		}
 		command = comment.substr(2 + config.bot_name.length)
 		if (command === "runbenchmarks") {
-			logger.info(`benchmarking job sent for ${json.repository.name} by ${json.comment.user.login}`)
-			github.makeComment(`Your benchmarking request is accepted. I will get back to you once the job is complete.`, config.org, json.repository.name, json.issue.number)
 			github.getPR(config.org, json.repository.name, json.issue.number, (err, json2) => {
 				if (err) throw err;
-				utils.generate_temp_report(json.repository.name, json.issue.number, json2.head.sha)
-				jenkins.build(json.repository.owner.login, json.repository.name, json.issue.number)
+				if (utils.is_already_queued(json.repository.name, json.issue.number, json2.head.sha)) {
+					github.makeComment(`Benchmarking request for this PR is already in queue. Either abort it or wait for it to get completed.`, config.org, json.repository.name, json.issue.number)
+				}
+				else {
+					logger.info(`benchmarking job sent for ${json.repository.name} by ${json.comment.user.login}`)
+					github.makeComment(`Your benchmarking request is accepted. I will get back to you once the job is complete.`, config.org, json.repository.name, json.issue.number)
+					utils.generate_temp_report(json.repository.name, json.issue.number, json2.head.sha)
+					jenkins.build(json.repository.owner.login, json.repository.name, json.issue.number)
+				}
+			})
+		}
+		else if (command === "abort") {
+			github.getPR(config.org, json.repository.name, json.issue.number, (err, json2) => {
+				if (err) throw err;
+				if (utils.is_already_queued(json.repository.name, json.issue.number, json2.head.sha)) {
+					github.makeComment(`Benchmarking job for this pull request is aborted.`, config.org, json.repository.name, json.issue.number)
+					jenkins.abort(json.repository.name, json.issue.number);
+					utils.abort(json.repository.name, json.issue.number)
+				}
+				else {
+					github.makeComment(`No queued job found for this pull request.`, config.org, json.repository.name, json.issue.number)
+				}
 			})
 		}
 

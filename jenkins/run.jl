@@ -64,5 +64,5 @@ payload =
     """
 
 using HTTP
-HTTP.post("http://localhost:8081/api/report", ["Content-Type" => "application/json"], payload)
+HTTP.post("$(ARGS[5])/api/report", ["Content-Type" => "application/json"], payload)
 
