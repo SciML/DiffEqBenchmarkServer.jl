@@ -1,4 +1,4 @@
-using GitHub, JSON, PkgBenchmark, BenchmarkTools
+using JSON, PkgBenchmark, BenchmarkTools
 judgement = judge(ARGS[1], "HEAD", "master");
 entries = BenchmarkTools.leaves(judgement.benchmarkgroup)
 entries = entries[sortperm(map(x -> string(first(x)), entries))]
@@ -14,25 +14,19 @@ for t in entries
     end
 end
 
-
-GLOBAL_IMGUR_KEY = "place_an_imgur_key_here"
-
-macro imgur(comm)
-    return :(io_imgur = IOBuffer();p_imgur = $comm; show(io_imgur, MIME("image/png"), p_imgur);img_imgur = String(take!(io_imgur));r_imgur = HTTP.post("https://api.imgur.com/3/image", ["Authorization"=> "Client-ID $(GLOBAL_IMGUR_KEY)", "Accept"=> "application/json"], img_imgur);JSON.parse(String(r_imgur.body))["data"]["link"])
-end
-
-
-include("$(ARGS[4])/benchmark/diagrams.jl")
+using DiffEqDiagrams
+set_imgur_key("1c7ba4566cd9671")
+diagrams = generate_diagrams(ARGS[1])
 
 d = ""
-for i in keys(DIAGRAMS)
+for i in keys(diagrams)
     global d
     d = d*"""
             ,{
                 "type": "image",
                 "id": "img_$(i)",
                 "title": "$(i)",
-                "data": "$(DIAGRAMS[i])"
+                "data": "$(diagrams[i])"
             }
           """
 end
@@ -40,7 +34,7 @@ end
 payload = 
     """
     {
-        "key": "jenkins_secret_from_config_json",
+        "key": "secret_secret_secret",
         "report": {
             "repo": "$(ARGS[1]).jl",
             "pr": $(ARGS[2]),
@@ -65,4 +59,3 @@ payload =
 
 using HTTP
 HTTP.post("$(ARGS[5])/api/report", ["Content-Type" => "application/json"], payload)
-
