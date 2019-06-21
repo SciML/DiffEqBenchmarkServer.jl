@@ -1,19 +1,30 @@
 {
-	"admin"                    : "github_handle",
-	"db_url"                   : "mongodb+srv://uid:pass@server.com/db?retryWrites=true",
-	"homepage_url"             : "http://server.io",
-	"jenkins_secret"           : "secret_secret_secret",
-	"org"                      : "JuliaDiffEq",
-	"github_outh_client_id"    : "ffffffffffffffffffff",
-	"github_outh_client_secret": "ffffffffffffffffffffffffffffffffffffffff",
-	"registered_repos"         : ["OrdinaryDiffEq.jl", "StochasticDiffEq.jl"],
-	"bot_secret"               : "some_secret",
-	"bot_name"                 : "DiffEqBot",
-	"bot_account_token"        : "ffffffffffffffffffffffffffffffffffffffff",
-	"benchmarkers"             : ["kanav99"],
-	"jenkins_url"              : "http://user:password@localhost:8080",
-	"jenkins_auth_token"       : "jenkins_token",
-	"jenkins_job"              : "jobname",
-	"jenkins_user"             : "kanav",
-	"jenkins_password"         : "password"
+	"admin"               : 
+		{
+			"github_handle": "kanav99",
+			"name"         : "Kanav Gupta",
+			"email"        : "kanav0610@gmail.com"
+		},
+	"homepage_url"        : "http://app.herokuapp.com",
+	"org"                 : "JuliaDiffEq",
+	"registered_repos"    : ["OrdinaryDiffEq.jl"],
+	"benchmarkers"        : ["kanav99", "ChrisRackauckas"],
+	"bot_name"            : "DiffEqBot",
+	"gitlab_runner_secret": "much_secret_very_secure",
+	"github_app"          : 
+		{
+			"client_id"    : "abcdefabcdefabcdefab",
+			"client_secret": "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+			"bot_endpoint" : "/bot/secret/endpoint"
+		},
+	"gitlab_account"      :
+		{
+			"benchmarking_repo_id": 12345678,
+			"access_token"        : "AaBbCcDdEeFfGgHhIiJj"
+		},
+	"github_account"      :
+		{
+			"access_token": "abcdefabcdefabcdefabcdefabcdefabcdefabcd"
+		},
+	"reports_repo"        : "DiffEqBot/Reports" 
 }

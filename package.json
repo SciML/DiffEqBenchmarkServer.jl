@@ -12,7 +12,7 @@
   "dependencies": {
     "ejs": "^2.6.1",
     "express": "^4.16.4",
-    "logger": "0.0.1",
-    "request": "^2.88.0"
+    "request": "^2.88.0",
+    "sync-request": "^6.1.0"
   }
 }
