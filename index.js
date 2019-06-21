@@ -43,7 +43,7 @@ app.get('/keepalive', (req, res) => {
 
 /* Section: Gitlab Runner Endpoints */
 /* This is the endpoint where the Gitlab runner submits the final report */
-/* Format of the report is availible in `sample.report.json` */
+/* Format of the report is availible in `Report Format` section of README.md */
 app.post("/api/report", (req, res) => {
 	key = req.body.key;
 	/* We check if the request is actually sent by the runner */
