@@ -1,10 +1,8 @@
-var express = require("express");
-var logger  = require("logger").createLogger('development.log');
-var fs      = require("fs");
-var request = require("request");
-var utils   = require("./utils");
-var GitHub  = require("./github").GitHub;
-var Jenkins = require("./jenkins").Jenkins
+var express =       require("express");
+var fs      =       require("fs");
+var request =       require("request");
+var GitHub  =       require("./github").GitHub;
+var GitlabProject = require("./gitlab").GitlabProject
 
 /* MIDDLEWARES */
 var app = express()
@@ -14,218 +12,109 @@ app.use(express.static('public'))
 app.set('view engine', 'ejs');
 
 /* BOOTSTRAP */
-!fs.existsSync(__dirname + `/reports`) && fs.mkdirSync(__dirname + `/reports`);
+/* working Directory is the directory where we temporarily pull the BenchmarkRepo and make a */
+/* new branch and push to gitlab */
+!fs.existsSync(__dirname + `/workingdir`) && fs.mkdirSync(__dirname + `/workingdir`);
+/* Reading configuration from config.json */
 config = JSON.parse(fs.readFileSync(__dirname + "/config.json"))
-github = new GitHub(config.admin, config.github_outh_client_id, config.github_outh_client_secret, config.bot_account_token)
-jenkins = new Jenkins(config.jenkins_url, config.jenkins_job, config.jenkins_auth_token, config.homepage_url, config.jenkins_user, config.jenkins_password)
+/* Making a GitHub object (definations are in github.js) */
+/* We interact to GitHub through this object */
+github = new GitHub(config.admin, config.github_app.client_id, config.github_app.client_secret, config.github_account.access_token, config.reports_repo)
+/* Making a GitlabProject object (definations are in gitlab.js) */
+/* We interact to our Benchmarking Repo on Gitlab through this object */
+gitlab = new GitlabProject(config.admin, config.gitlab_account.benchmarking_repo_id, config.gitlab_account.access_token)
+/* Initializing GitlabProject Object */
+gitlab.init();
 
-/* PUBLIC ROUTES */
-app.get("/", (req, res) => {
-	res.render("index", {registered_repos: config.registered_repos, org: config.org, repo: "", bot: config.bot_name, benchmarkers: config.benchmarkers, admin: config.admin})
-});
-
-app.get("/packages/:repo", (req, res) => {
-	if (config.registered_repos.includes(req.params.repo))
-		res.render("repo", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo});
-	else
-		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo})
+/* Homepage of Bot URL */
+/* TODO: Connect Frontent to Bot */
+/* We already have some views in `views` directory */
+app.get('/', (req, res) => {
+	res.send("hello")
 })
 
-app.get("/packages/:repo/:pr", (req, res) => {
-	if (config.registered_repos.includes(req.params.repo))
-		res.render("pr", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo, pr: req.params.pr})
-	else
-		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo})
+/* This endpoint is of use when we deploy bot on a free dyno */
+/* Make some computer ping this endpoint every 15 minutes so that the dyno doesn't shut down */
+/* Hence the requests would be faster */
+app.get('/keepalive', (req, res) => {
+	res.send("ok");
 })
 
-app.get("/packages/:repo/:pr/:commit", (req, res) => {
-	if (config.registered_repos.includes(req.params.repo) && (req.params.commit.indexOf(".") === -1)) {
-			res.render("build", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo, pr: req.params.pr, commit: req.params.commit})
-	}
-	else
-		res.status(404).render("404", {registered_repos: config.registered_repos, org: config.org, repo: req.params.repo})
-}) 
 
-/* API */
-
-app.get("/api/pr/:repo/:pr", (req,res) => {
-	if (!config.registered_repos.includes(req.params.repo)){
-		res.status(404).send("not found");
-		return;
-	}
-
-	github.getPR(config.org, req.params.repo, req.params.pr, (err, json) => {
-		if (err) {
-			res.status(500).send("Internal Error");
-			throw err;
-		}
-		res.json({number: json.number, author: json.user.login, title: json.title})
-	})
-})
-
-app.get("/api/commits/:repo/:pr/", (req,res) => {
-	if (!config.registered_repos.includes(req.params.repo)){
-		res.status(404).send("not found");
-		return;
-	}
-
-	github.getCommits(config.org, req.params.repo, req.params.pr, (err, json) => {
-		if (err) {
-			res.status(500).send("Internal Error");
-			throw err;
-		}
-		res_json = []
-		json.forEach((commit) => {
-			res_json.push({sha: commit.sha, message: commit.commit.message})
-		})
-		res.json(res_json)
-	})
-})
-
-app.get("/api/builds/:repo/:pr", (req, res) => {
-	if (!config.registered_repos.includes(req.params.repo)){
-		res.status(404).send("not found");
-		return;
-	}
-
-	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}`)) {
-		res.json({ builds: [] })
-		return;
-	}
-	if (!fs.existsSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}`)) {
-		res.json({ builds: [] })
-		return;
-	}
-	dir = __dirname + `/reports/${req.params.repo}/${req.params.pr}/`
-	builds = fs.readdirSync(dir)
-				.map(function(v) { 
-                  return { name:v,
-                           time:fs.statSync(dir + v).mtime.getTime()
-                         }; 
-               })
-               .sort(function(a, b) { return b.time - a.time; })
-               .map(function(v) { return v.name; });
-    found_qid = false;
-	for (var i = builds.length - 1; i >= 0; i--) {
-		if (builds[i] === "qid") {
-			found_qid = true;
-			continue;
-		}
-		if (found_qid) {
-			builds[i+1] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
-		}
-		else {
-			builds[i] = builds[i].substr(0, builds[i].length-5) // Removing `.json`
-		}
-	}
-	if (found_qid) {
-		res.json({builds: builds.splice(1)})
-	}
-	else {
-		res.json({builds})
-	}
-})
-
-app.get("/api/build/:repo/:pr/:commit", (req, res) => {
-	if (!config.registered_repos.includes(req.params.repo) || (req.params.commit.indexOf(".") !== -1)){
-		res.status(404).send("not found");
-		return;
-	}
-
-	if(fs.existsSync(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.json`))
-		res.sendFile(__dirname + `/reports/${req.params.repo}/${req.params.pr}/${req.params.commit}.json`)
-	else
-		res.status(404).send("not found");
-})
-
-app.get("/api/repo_open_pulls/:repo", (req, res) => {
-	if (!config.registered_repos.includes(req.params.repo)){
-		res.status(404).send("not found");
-		return;
-	}
-
-	github.getOpenPulls(config.org, req.params.repo, (err, json) => {
-		if (err) {
-			res.status(500).send("Internal Error")
-			throw err;
-		}
-		else {
-			if(!(json instanceof Array)) {
-				res.status(500).send("Internal Error");
-				return;
-			}
-			data = []
-			json.forEach((pr) => {
-				obj = { title: pr.title, number: pr.number, author: pr.user.login }
-				data.push(obj);
-			})
-			res.json(data);
-		}
-	})
-})
-
-/* FOR JENKINS */
+/* Section: Gitlab Runner Endpoints */
+/* This is the endpoint where the Gitlab runner submits the final report */
+/* Format of the report is availible in `sample.report.json` */
 app.post("/api/report", (req, res) => {
 	key = req.body.key;
-	if (key !== config.jenkins_secret) {
+	/* We check if the request is actually sent by the runner */
+	/* If the key is wrong, we send a not authorized status */
+	if (key !== config.gitlab_runner_secret) {
 		res.status(401).send("not authorized");
 		return;
 	}
 
 	report = req.body.report;
+	/* Check if the repository mentioned in the report is registered or not */
 	if (!config.registered_repos.includes(report.repo)){
 		res.status(404).send("not found");
 		return;
 	}
 
-	/* Generate a static report */
-	utils.generate_report(report, (success) => {
-		if (success) {
-			github.makeComment(`Benchmark report for ${report.commit.substr(0,7)} is generated and can be found [here](${config.homepage_url}/packages/${report.repo}/${report.pr}/${report.commit})`, config.org, report.repo, report.pr)
-			logger.info(`Performance report generated for ${report.repo}#${report.pr}(${report.commit})`)
-		}
-		else {
-			logger.error(`Error generating report for ${report.repo}#${report.pr}(${report.commit})`)
-			res.send("error");
-			return;
-		}
+	/* If the code reaches here, that means the request is valid */
+	/* We now generate a report on the Reports repository on GitHub */
+	github.generate_report(report, (filename) => {
+		/* Make a comment on the repository that the report is ready */
+		github.makeComment(`Benchmark report for ${report.commit.substr(0,7)} is generated and can be found [here](https://github.com/DiffEqBot/Reports/blob/master/${report.repo}/${report.pr}/${report.commit}/${filename}.md)`, config.org, report.repo, report.pr)
+		/* Maintain a local heroku log too */
+		console.log(`Performance report generated for ${report.repo}#${report.pr}(${report.commit})`);
 	});
-
+	/* Respond with something or else you get unnecesary internal errors logged in heroku metrics */
 	res.send("ok");
 });
 
+/* Endpoint where gitlab runner reports that the job has been converted from pending to running */
 app.get("/api/report_started", (req, res) => {
-	utils.job_started(req.query.repo, req.query.pr, req.query.commit)
 	res.send("ok")
 })
-app.get("/api/report_failed", (req, res) => {
-	utils.job_failed(req.query.repo, req.query.pr, req.query.commit)
-	res.send("ok")
-})
-/* BOT ENDPOINT */
 
-app.post(`/bot/${config.bot_secret}`, (req, res) => {
+/* Endpoint where the gitlab runner reports when the job fails */
+app.get("/api/report_failed", (req, res) => {
+	github.makeComment(`Your benchmarking job for ${req.query.commit.substr(0,7)} failed.`, config.org, req.query.repo, req.query.pr)
+	res.send("ok")
+})
+/* TODO: We need to have to verify the requests on the above two endpoints in the same way we verify for `/api/report` */
+/* Even though its not that big of an issue, but we dont want people to unnecesarily make comment on DiffEqBot's name  */
+
+/* Section: Bot Endpoint */
+/* This is the endpoint where the GitHub app submits the JSON of every comment event on JuliaDiffEq organization's repositories */
+app.post(`${config.github_app.bot_endpoint}`, (req, res) => {
 	json = req.body;
+	/* Some sanity checks */
+	/* For format of the json sent by GitHub, check out https://developer.github.com/webhooks */
 	if (json.action === "created"             &&
 		json.issue !== undefined              &&
 		json.comment !== undefined            &&
 		json.issue.pull_request !== undefined
 		) {
+		/* Remove unnecesary whitespaces from the ends of comment */
 		comment = json.comment.body.trim()
+		/* Find the position the mention of bot */
 		idx = comment.indexOf(`@${config.bot_name}`)
+		/* Not of our interest if they haven't mentioned DiffEqBot */
 		if (idx == -1) {
 			res.send("ok")
 			return;
 		}
+		/* Check the organization and repository of webhook  */
 		if (json.repository.owner.login !== config.org || !config.registered_repos.includes(json.repository.name)) {
 			/* Send a comment that this repo is not authorized/registered */
-			github.makeComment(`Sorry, but this repository is not registered to work with me. cc @${config.admin}`, config.org, json.repository.name, json.issue.number)
+			github.makeComment(`Sorry, but this repository is not registered to work with me. cc @${config.admin.github_handle}`, json.repository.owner.login, json.repository.name, json.issue.number)
 			res.send("ok")
 			return;
 		}
 		if (!config.benchmarkers.includes(json.comment.user.login)) {
 			/* send a comment that you cant do that */
-			github.makeComment(`Sorry, but you cannot do that, instead you can ask @${config.admin} to run benchmarks.`, config.org, json.repository.name, json.issue.number)
+			github.makeComment(`Sorry, but you cannot do that, instead you can ask @${config.admin.github_handle} to run benchmarks.`, config.org, json.repository.name, json.issue.number)
 			res.send("ok")
 			return;
 		}
@@ -236,38 +125,54 @@ app.post(`/bot/${config.bot_secret}`, (req, res) => {
 			return;
 		}
 		command = comment.substr(2 + config.bot_name.length)
+		/* parsing the command */
 		if (command === "runbenchmarks") {
+			/* Get PR data from GitHub, used to get the latest commit */
 			github.getPR(config.org, json.repository.name, json.issue.number, (err, json2) => {
 				if (err) throw err;
-				if (utils.is_already_queued(json.repository.name, json.issue.number, json2.head.sha)) {
-					github.makeComment(`Benchmarking request for this PR is already in queue. Either abort it or wait for it to get completed.`, config.org, json.repository.name, json.issue.number)
-				}
-				else {
-					logger.info(`benchmarking job sent for ${json.repository.name} by ${json.comment.user.login}`)
-					github.makeComment(`Your benchmarking request is accepted. I will get back to you once the job is complete.`, config.org, json.repository.name, json.issue.number)
-					utils.generate_temp_report(json.repository.name, json.issue.number, json2.head.sha)
-					jenkins.build(json.repository.owner.login, json.repository.name, json.issue.number)
-				}
+				/* Check if there is already some job queued for this PR (that is either running or pending) */
+				gitlab.is_job_already_queued(json.repository.name, json.issue.number, (queued) => {
+					/* If queued, do not run benchmarks */
+					if (queued)
+						github.makeComment(`Benchmarking request for this PR is already in queue. Either abort it or wait for it to get completed.`, config.org, json.repository.name, json.issue.number)
+					else {
+						console.log(`benchmarking job sent for ${json.repository.name} by ${json.comment.user.login}`)
+						github.makeComment(`Your benchmarking request is accepted. I will get back to you once the job is complete.`, config.org, json.repository.name, json.issue.number)
+						/* Generate Gitlab CI yaml file */
+						yaml = gitlab.generate_ci_yaml(config.org, json.repository.name, json.issue.number, json2.head.sha, config.homepage_url)
+						/* Use that yaml file and push to branch `repo-pr` */
+						gitlab.push_to_benchmark_repo(config.org, json.repository.name, json.issue.number, yaml)
+					}
+					res.send("ok")
+				})
 			})
 		}
 		else if (command === "abort") {
+			/* Get PR data from GitHub, used to get the latest commit */
 			github.getPR(config.org, json.repository.name, json.issue.number, (err, json2) => {
 				if (err) throw err;
-				if (utils.is_already_queued(json.repository.name, json.issue.number, json2.head.sha)) {
-					github.makeComment(`Benchmarking job for this pull request is aborted.`, config.org, json.repository.name, json.issue.number)
-					jenkins.abort(json.repository.name, json.issue.number);
-					utils.abort(json.repository.name, json.issue.number)
-				}
-				else {
-					github.makeComment(`No queued job found for this pull request.`, config.org, json.repository.name, json.issue.number)
-				}
+				/* Can abort only if there is already queued job */
+				gitlab.is_job_already_queued(json.repository.name, json.issue.number, (queued) => {
+					if (queued) {
+						github.makeComment(`Benchmarking job for this pull request is aborted.`, config.org, json.repository.name, json.issue.number)
+						/* Abort job on gitlab runner */
+						gitlab.abort_job(json.repository.name, json.issue.number);
+					}
+					else {
+						github.makeComment(`No queued job found for this pull request.`, config.org, json.repository.name, json.issue.number)
+					}
+					res.send("ok")
+				})
 			})
 		}
 
 	}
+	else {
+		res.send("ok")
+	}
 })
 
-/* LISTEN */
+/* Listener */
 var listener = app.listen(process.env.PORT || 8081, () => {
-	logger.info(`Server running at ${listener.address().port}`)
+	console.log(`Server running at ${listener.address().port}`)
 })
