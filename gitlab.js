@@ -101,11 +101,13 @@ main:
     - cd ..
     - curl "${fallback}/api/report_started?repo=${repo}&pr=${pr}&commit=${commit}"
     - julia run.jl "${repo.split(".")[0]}" "${pr}" "${commit}" "${fallback}"
+    - julia -e "using Pkg; Pkg.rm(\\"${repo.split(".")[0]}\\")"
 
 failed_job:
   stage: second
   script:
     - curl "${fallback}/api/report_failed?repo=${repo}&pr=${pr}&commit=${commit}"
+    - julia -e "using Pkg; Pkg.rm(\\"${repo.split(".")[0]}\\")"
   when: on_failure
 
 `
