@@ -1,5 +1,7 @@
 # DiffEqBenchmarkServer
 
+[![Build Status](https://github.com/SciML/DiffEqBenchmarkServer.jl/workflows/CI/badge.svg)](https://github.com/SciML/DiffEqBenchmarkServer.jl/actions?query=workflow%3ACI)
+
 This is the node server behind the working of the DiffEqBot. Follow the step by step instructions for deploying your own bot.
 
 ## Instructions
